@@ -59,23 +59,12 @@ class TopkRouter(nn.Module):
 
     @torch.no_grad()
     def get_top_k_indices(self, scores):
-        scores_for_choice = scores.view(-1, self.n_routed_experts) + self.e_score_correction_bias.unsqueeze(0)
+        scores_for_choice = scores.view(-1, self.n_routed_experts) + self.e_score_correction_bias.unsqueeze(0) 
         group_scores = (
             scores_for_choice.view(-1, self.n_group, self.n_routed_experts // self.n_group)
             .topk(2, dim=-1)[0]
             .sum(dim=-1)
-        )
-        group_idx = torch.topk(group_scores, k=self.top_k_group, dim=-1, sorted=False)[1]
-        group_mask = torch.zeros_like(group_scores)
-        group_mask.scatter_(1,group_idx,1)
-        score_mask = (
-            group_mask.unsqueeze(-1)
-            .expand(-1, self.n_group, self.n_routed_experts // self.n_group)
-            .reshape(-1, self.n_routed_experts)
-        )
-        scores_for_choice = scores_for_choice.masked_fill(~score_mask.bool(), 0.0)
-        top_k_indices = torch.topk(scores_for_choice, k=self.top_k, dim=-1, sorted=False)[1]
-        return top_k_indices
+        ) 
     
     def forward(self, hidden_states):
         hidden_states = hidden_states.view(-1, self.config.hidden_size)
